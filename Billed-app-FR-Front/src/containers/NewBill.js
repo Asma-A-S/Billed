@@ -24,7 +24,7 @@ export default class NewBill {
 			.files[0];
 		const filePath = e.target.value.split(/\\/g);
 		const fileName = filePath[filePath.length - 1];
-		const allowedExtensions = ["jpg", "jpeg", "png"]; //vérifier l'extension avant la soumission
+		const allowedExtensions = ["jpg", "jpeg", "png"];
 		const fileExtension = fileName.split(".").pop().toLowerCase();
 
 		if (allowedExtensions.includes(fileExtension)) {
@@ -32,7 +32,6 @@ export default class NewBill {
 			const email = JSON.parse(localStorage.getItem("user")).email;
 			formData.append("file", file);
 			formData.append("email", email);
-
 			this.store
 				.bills()
 				.create({
@@ -42,7 +41,6 @@ export default class NewBill {
 					},
 				})
 				.then(({ fileUrl, key }) => {
-					console.log(fileUrl);
 					this.billId = key;
 					this.fileUrl = fileUrl;
 					this.fileName = fileName;
