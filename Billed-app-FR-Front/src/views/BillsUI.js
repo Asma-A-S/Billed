@@ -18,14 +18,12 @@ const row = (bill) => {
     </tr>
     `;
 };
-
-/*const rows = (data) => {
-	return data && data.length ? data.map((bill) => row(bill)).join("") : "";
-};*/
 const rows = (data) => {
+	console.log("data", data);
 	return data && data.length
 		? data
-				.sort((a, b) => (a.date < b.date ? 1 : -1))
+				// fix Le test Bills / les notes de frais s'affichent par ordre décroissant est passé au rouge.
+				.sort((a, b) => (new Date(a.date) < new Date(b.date) ? 1 : -1))
 				.map(row)
 				.join("")
 		: "";
