@@ -10,55 +10,11 @@ import { ROUTES, ROUTES_PATH } from "../constants/routes.js";
 import { localStorageMock } from "../__mocks__/localStorage.js";
 import mockStore from "../__mocks__/store";
 import { bills } from "../fixtures/bills.js";
-import { formatStatus } from "../app/format.js";
+import { formatStatus, formatDate } from "../app/format.js";
 import router from "../app/Router.js";
 
 jest.mock("../app/store", () => mockStore);
-describe("Given I am a user connected as Employee", () => {
-	describe("When I call getBills and there is an error in the data formatting", () => {
-		test("Then it should catch the error and return unformatted data", async () => {
-			// Mock localStorage
-			Object.defineProperty(window, "localStorage", {
-				value: localStorageMock,
-			});
-			window.localStorage.setItem(
-				"user",
-				JSON.stringify({
-					type: "Employee",
-				})
-			);
 
-			const onNavigate = jest.fn();
-			const bill = new Bills({
-				document,
-				onNavigate,
-				store: mockStore, // Mock store
-				localStorage: window.localStorage,
-			});
-
-			mockStore.bills = jest.fn(() => ({
-				list: jest.fn(() => Promise.resolve(bills)),
-			}));
-
-			// Spy on the console.log to verify it catches the error
-			const consoleSpy = jest.spyOn(console, "log");
-
-			const result = await bill.getBills();
-
-			expect(consoleSpy).toHaveBeenCalledWith("length", bills.length);
-
-			const expectedResult = bills.map((bill) => ({
-				...bill,
-				date: bill.date,
-				status: formatStatus(bill.status),
-			}));
-
-			expect(result).toEqual(expectedResult);
-
-			consoleSpy.mockRestore(); // Restore original console.log behavior
-		});
-	});
-});
 describe("Given I am connected as an employee", () => {
 	describe("When I am on Bills Page", () => {
 		test("Then bill icon in vertical layout should be highlighted", async () => {
@@ -83,11 +39,13 @@ describe("Given I am connected as an employee", () => {
 		});
 		test("Then bills should be ordered from earliest to latest", () => {
 			document.body.innerHTML = BillsUI({ data: bills });
+			console.log("bill", bills);
 			const dates = screen
 				.getAllByText(
 					/^(19|20)\d\d[- /.](0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])$/i
 				)
 				.map((a) => a.innerHTML);
+			console.log("date", dates);
 			const antiChrono = (a, b) => (a < b ? 1 : -1);
 			const datesSorted = [...dates].sort(antiChrono);
 			expect(dates).toEqual(datesSorted);
@@ -144,6 +102,83 @@ describe("When I am on Bill page and I click on the icon eye", () => {
 		expect(handleClickIconEye).toHaveBeenCalled();
 
 		expect(modale).toBeTruthy();
+	});
+});
+
+describe("Bills", () => {
+	let bill;
+	const mockStore = {
+		bills: jest.fn().mockReturnValue({
+			list: jest
+				.fn()
+				.mockResolvedValue([{ date: "invalid-date", status: "pending" }]),
+		}),
+	};
+
+	beforeEach(() => {
+		bill = new Bills({
+			document: document,
+			onNavigate: jest.fn(),
+			store: mockStore,
+			localStorage: {},
+		});
+	});
+
+	test("should log an error when date formatting fails", async () => {
+		const consoleLogSpy = jest.spyOn(console, "log");
+
+		const result = await bill.getBills();
+
+		expect(consoleLogSpy).toHaveBeenCalledWith(expect.any(Error), "for", {
+			date: "invalid-date",
+			status: "pending",
+		}); // Vérifie que console.log a été appelé avec les bons arguments
+
+		consoleLogSpy.mockRestore(); // Restaure console.log après le test
+	});
+});
+describe("Given I am a user connected as Employee", () => {
+	describe("When I call getBills", () => {
+		test("Then it should return formatted data", async () => {
+			// Mock localStorage
+			Object.defineProperty(window, "localStorage", {
+				value: localStorageMock,
+			});
+			window.localStorage.setItem(
+				"user",
+				JSON.stringify({
+					type: "Employee",
+				})
+			);
+
+			const onNavigate = jest.fn();
+			const bill = new Bills({
+				document,
+				onNavigate,
+				store: mockStore,
+				localStorage: window.localStorage,
+			});
+
+			mockStore.bills = jest.fn(() => ({
+				list: jest.fn(() => Promise.resolve(bills)),
+			}));
+
+			const consoleSpy = jest.spyOn(console, "log");
+
+			const result = await bill.getBills();
+
+			expect(consoleSpy).toHaveBeenCalledWith("length", bills.length);
+
+			const expectedResult = bills.map((bill) => ({
+				...bill,
+				date: formatDate(bill.date),
+				status: formatStatus(bill.status),
+			}));
+
+			expect(result).toEqual(expectedResult);
+
+			consoleSpy.mockRestore();
+		});
 	});
 });
 ///////////**********test integration*************/////////////
