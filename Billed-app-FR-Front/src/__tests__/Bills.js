@@ -13,7 +13,7 @@ import { bills } from "../fixtures/bills.js";
 import { formatStatus, formatDate } from "../app/format.js";
 import router from "../app/Router.js";
 
-jest.mock("../app/store", () => mockStore);
+jest.mock("../app/Store", () => mockStore);
 
 describe("Given I am connected as an employee", () => {
 	describe("When I am on Bills Page", () => {
@@ -46,7 +46,9 @@ describe("Given I am connected as an employee", () => {
 				)
 				.map((a) => a.innerHTML);
 			console.log("date", dates);
-			const antiChrono = (a, b) => (a < b ? 1 : -1);
+			//const antiChrono = (a, b) => (a < b ? 1 : -1);
+
+			const antiChrono = (a, b) => new Date(b.date) - new Date(a.date);
 			const datesSorted = [...dates].sort(antiChrono);
 			expect(dates).toEqual(datesSorted);
 		});
