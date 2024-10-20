@@ -1,7 +1,6 @@
 import VerticalLayout from "./VerticalLayout.js";
 import ErrorPage from "./ErrorPage.js";
 import LoadingPage from "./LoadingPage.js";
-
 import Actions from "./Actions.js";
 
 const row = (bill) => {
@@ -23,7 +22,7 @@ const rows = (data) => {
 	return data && data.length
 		? data
 				// fix Le test Bills / les notes de frais s'affichent par ordre décroissant est passé au rouge.
-				.sort((a, b) => (new Date(a.date) < new Date(b.date) ? 1 : -1))
+				//.sort((a, b) => (new Date(a.date) < new Date(b.date) ? 1 : -1))
 				.map(row)
 				.join("")
 		: "";
