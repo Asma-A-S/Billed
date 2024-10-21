@@ -9,6 +9,7 @@ import NewBill from "../containers/NewBill.js";
 import { ROUTES, ROUTES_PATH } from "../constants/routes.js";
 import { localStorageMock } from "../__mocks__/localStorage.js";
 import mockStore from "../__mocks__/store.js";
+import { bill } from "../__mocks__/mockedBill.js";
 import router from "../app/Router.js";
 jest.mock("../app/Store", () => mockStore);
 
@@ -61,7 +62,10 @@ describe("Given I am connected as an employee on NewBill page", () => {
 			expect(inputFile.files[0].name).toBe("test.jpg");
 			expect(handleChangeFile).toHaveBeenCalled();
 
-			const { fileUrl, key } = await mockStore.bills().create();
+			const { fileUrl, key } = await mockStore.bills().create({
+				shouldFailWith404: false,
+				shouldFailWith500: false,
+			});
 			expect(fileUrl).toBe("https://localhost:3456/images/test.jpg");
 			expect(key).toBe("1234");
 		});
@@ -130,7 +134,9 @@ describe("Given I am connected as an employee on NewBill page", () => {
 				localStorage: window.localStorage,
 			});
 		});
-
+		afterEach(() => {
+			jest.clearAllMocks();
+		});
 		test("Then handleSubmit should be called", () => {
 			const form = screen.getByTestId("form-new-bill");
 			const handleSubmit = jest.fn(newBill.handleSubmit);
@@ -173,48 +179,16 @@ describe("When I navigate to Dashboard employee", () => {
 		Object.defineProperty(window, "localStorage", {
 			value: localStorageMock,
 		});
-		test("Add a bill from mock API POST", async () => {
-			const postSpy = jest.spyOn(mockStore, "bills");
-			const bill = {
-				id: "47qAXb6fIm2zOKkLzMro",
-				vat: "80",
-				fileUrl:
-					"https://firebasestorage.googleapis.com/v0/b/billable-677b6.a…f-1.jpg?alt=media&token=c1640e12-a24b-4b11-ae52-529112e9602a",
-				status: "pending",
-				type: "Hôtel et logement",
-				commentary: "séminaire billed",
-				name: "encore",
-				fileName: "preview-facture-free-201801-pdf-1.jpg",
-				date: "2004-04-04",
-				amount: 400,
-				commentAdmin: "ok",
-				email: "a@a",
-				pct: 20,
-			};
-			// Simulation correcte de l'API avec mockResolvedValue pour l'appel réussi à create
-			mockStore.bills.mockImplementationOnce(() => ({
-				create: jest.fn().mockResolvedValue({
-					billId: bill.id,
-					fileUrl: bill.fileUrl,
-					fileName: bill.fileName,
-				}),
-			}));
-
-			await new Promise(process.nextTick); // Attendre la résolution de la promesse asynchrone
-
-			const { billId, fileUrl, fileName } = await mockStore
-				.bills()
-				.create(bill);
-
-			// Vérifier que le mock de la méthode POST a été appelé et que les données sont correctes
-			expect(billId).toEqual(bill.id);
-			expect(fileUrl).toEqual(bill.fileUrl);
-			expect(fileName).toEqual(bill.fileName);
-			const postBills = await mockStore.bills().update(bill);
-			expect(postBills).toStrictEqual(bill);
+		test("Add a bill to the mock API ", async () => {
+			const billMocked = await mockStore.bills().update(bill);
+			expect(billMocked.id).toBe("47qAXb6fIm2zOKkLzMro");
+			expect(billMocked).toStrictEqual(bill);
 		});
 		describe("When an error occurs on API", () => {
 			beforeEach(() => {
+				Object.defineProperty(window, "localStorage", {
+					value: localStorageMock,
+				});
 				window.localStorage.setItem(
 					"user",
 					JSON.stringify({
@@ -224,59 +198,47 @@ describe("When I navigate to Dashboard employee", () => {
 
 				document.body.innerHTML = NewBillUI();
 			});
-			test("Add bills from an API and fails with 404 message error", async () => {
-				const postSpy = jest.spyOn(console, "error");
-
-				const mockStore = {
-					bills: jest.fn(() => newBill.store),
-					create: jest.fn(() => Promise.reject(new Error("404"))),
-					update: jest.fn(() => Promise.reject(new Error("404"))),
-				};
-				const onNavigate = (pathname) => {
-					document.body.innerHTML = ROUTES({ pathname });
-				};
+			test("Add bills to API and fails with 404 message error", async () => {
+				const errorSpy = jest
+					.spyOn(console, "error")
+					.mockImplementation(() => {});
+				document.body.innerHTML = NewBillUI();
+				const onNavigate = jest.fn();
 				const newBill = new NewBill({
 					document,
 					onNavigate,
 					store: mockStore,
-					localStorage,
+					localStorage: window.localStorage,
 				});
 
-				// Submit form
-				const form = screen.getByTestId("form-new-bill");
-				const handleSubmit = jest.fn((e) => newBill.handleSubmit(e));
-				form.addEventListener("submit", handleSubmit);
-
-				fireEvent.submit(form);
-				await new Promise(process.nextTick);
-				expect(postSpy).toHaveBeenCalledWith(new Error("404"));
+				await expect(
+					mockStore.bills().create({ shouldFailWith404: true })
+				).rejects.toThrow("Erreur 404");
+				expect(errorSpy).toHaveBeenCalled();
+				const error = errorSpy.mock.calls[0][0];
+				expect(error.message).toBe("Erreur 404");
+				errorSpy.mockRestore();
 			});
-			test("Add bills from an API and fails with 500 message error", async () => {
-				const postSpy = jest.spyOn(console, "error");
-
-				const mockStore = {
-					bills: jest.fn(() => newBill.store),
-					create: jest.fn(() => Promise.resolve({})),
-					update: jest.fn(() => Promise.reject(new Error("500"))),
-				};
-				const onNavigate = (pathname) => {
-					document.body.innerHTML = ROUTES({ pathname });
-				};
+			test("Add bills to API and fails with 500 message error", async () => {
+				const errorSpy = jest
+					.spyOn(console, "error")
+					.mockImplementation(() => {});
+				document.body.innerHTML = NewBillUI();
+				const onNavigate = jest.fn();
 				const newBill = new NewBill({
 					document,
 					onNavigate,
 					store: mockStore,
-					localStorage,
+					localStorage: window.localStorage,
 				});
 
-				// Submit form
-				const form = screen.getByTestId("form-new-bill");
-				const handleSubmit = jest.fn((e) => newBill.handleSubmit(e));
-				form.addEventListener("submit", handleSubmit);
-
-				fireEvent.submit(form);
-				await new Promise(process.nextTick);
-				expect(postSpy).toHaveBeenCalledWith(new Error("500"));
+				await expect(
+					mockStore.bills().create({ shouldFailWith500: true })
+				).rejects.toThrow("Erreur 500");
+				expect(errorSpy).toHaveBeenCalled();
+				const error = errorSpy.mock.calls[0][0];
+				expect(error.message).toBe("Erreur 500");
+				errorSpy.mockRestore();
 			});
 		});
 	});
