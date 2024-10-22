@@ -95,7 +95,7 @@ export default class {
 	};
 
 	handleEditTicket(e, bill, bills) {
-		//e.stopImmediatePropagation();
+		e.stopImmediatePropagation();
 		if (this.counter === undefined || this.id !== bill.id) this.counter = 0;
 		if (this.id === undefined || this.id !== bill.id) this.id = bill.id;
 		if (this.counter % 2 === 0) {
@@ -105,7 +105,7 @@ export default class {
 			$(`#open-bill${bill.id}`).css({ background: "#2A2B35" });
 			$(".dashboard-right-container div").html(DashboardFormUI(bill));
 			$(".vertical-navbar").css({ height: "150vh" });
-			//this.counter++;
+			this.counter++;
 		} else {
 			$(`#open-bill${bill.id}`).css({ background: "#0D5AE5" });
 
