@@ -107,7 +107,7 @@ describe("When I am on Bill page and I click on the icon eye", () => {
 	});
 });
 
-describe("Bills", () => {
+describe("Given I am connected as an employee on Bills page", () => {
 	let bill;
 	const mockStore = {
 		bills: jest.fn().mockReturnValue({
@@ -139,6 +139,88 @@ describe("Bills", () => {
 		consoleLogSpy.mockRestore(); // Restaure console.log après le test
 	});
 });
+
+///////////**********test integration*************/////////////
+describe("Given I am a user connected as emploee", () => {
+	describe("When I navigate to Bills", () => {
+		jest.clearAllMocks();
+		test("Then fetches Bills from mock API get", async () => {
+			localStorage.setItem(
+				"user",
+				JSON.stringify({ type: "Employee", email: "a@a" })
+			);
+			const root = document.createElement("div");
+			root.setAttribute("id", "root");
+			document.body.append(root);
+			router();
+			window.onNavigate(ROUTES_PATH.Bills);
+
+			expect(screen.getAllByText("Billed")).toBeTruthy();
+			expect(await waitFor(() => screen.getByText("Mes notes de frais")));
+			expect(screen.getByTestId("tbody")).toBeTruthy();
+			expect(screen.getAllByText("test1")).toBeTruthy();
+			expect(screen.getAllByText("test2")).toBeTruthy();
+			expect(screen.getAllByText("test3")).toBeTruthy();
+			expect(screen.getAllByText("encore")).toBeTruthy();
+		});
+		describe("When an error occurs on API", () => {
+			beforeEach(() => {
+				jest.clearAllMocks();
+				jest.spyOn(mockStore, "bills");
+
+				Object.defineProperty(window, "localStorage", {
+					value: localStorageMock,
+				});
+				window.localStorage.setItem(
+					"user",
+					JSON.stringify({
+						type: "Employee",
+						email: "a@a",
+					})
+				);
+				const root = document.createElement("div");
+				root.setAttribute("id", "root");
+				document.body.appendChild(root);
+				router();
+			});
+
+			test("fetches bills from an API and fails with 404 message error", async () => {
+				const errorSpy = jest
+					.spyOn(console, "error")
+					.mockImplementation(() => {});
+				await expect(mockStore.bills().list("404")).rejects.toThrow(
+					"Erreur 404"
+				);
+				expect(errorSpy).toHaveBeenCalled();
+				const error = errorSpy.mock.calls[0][0];
+				expect(error.message).toBe("Erreur 404");
+
+				window.onNavigate(ROUTES_PATH.Bills);
+				await new Promise(process.nextTick);
+
+				errorSpy.mockRestore();
+			});
+
+			test("fetches messages from an API and fails with 500 message error", async () => {
+				const errorSpy = jest
+					.spyOn(console, "error")
+					.mockImplementation(() => {});
+				await expect(mockStore.bills().list("500")).rejects.toThrow(
+					"Erreur 500"
+				);
+				expect(errorSpy).toHaveBeenCalled();
+				const error = errorSpy.mock.calls[0][0];
+				expect(error.message).toBe("Erreur 500");
+
+				window.onNavigate(ROUTES_PATH.Bills);
+				await new Promise(process.nextTick);
+
+				errorSpy.mockRestore();
+			});
+		});
+	});
+});
+
 describe("Given I am a user connected as Employee", () => {
 	describe("When I call getBills", () => {
 		test("Then it should return formatted data", async () => {
@@ -180,77 +262,7 @@ describe("Given I am a user connected as Employee", () => {
 			expect(result).toEqual(expectedResult);
 
 			consoleSpy.mockRestore();
-		});
-	});
-});
-///////////**********test integration*************/////////////
-
-describe("Given I am a user connected as emploee", () => {
-	describe("When I navigate to Bills", () => {
-		test("Then fetches Bills from mock API get", async () => {
-			localStorage.setItem(
-				"user",
-				JSON.stringify({ type: "Employee", email: "a@a" })
-			);
-			const root = document.createElement("div");
-			root.setAttribute("id", "root");
-			document.body.append(root);
-			router();
-			window.onNavigate(ROUTES_PATH.Bills);
-			expect(screen.getAllByText("Billed")).toBeTruthy();
-			expect(await waitFor(() => screen.getByText("Mes notes de frais")));
-			expect(screen.getByTestId("tbody")).toBeTruthy();
-			expect(screen.getAllByText("test1")).toBeTruthy();
-			expect(screen.getAllByText("test2")).toBeTruthy();
-			expect(screen.getAllByText("test3")).toBeTruthy();
-			expect(screen.getAllByText("encore")).toBeTruthy();
-		});
-		describe("When an error occurs on API", () => {
-			beforeEach(() => {
-				jest.spyOn(mockStore, "bills");
-				Object.defineProperty(window, "localStorage", {
-					value: localStorageMock,
-				});
-				window.localStorage.setItem(
-					"user",
-					JSON.stringify({
-						type: "Employee",
-						email: "a@a",
-					})
-				);
-				const root = document.createElement("div");
-				root.setAttribute("id", "root");
-				document.body.appendChild(root);
-				router();
-			});
-			test("fetches bills from an API and fails with 404 message error", async () => {
-				mockStore.bills.mockImplementationOnce(() => {
-					return {
-						list: () => {
-							return Promise.reject(new Error("Erreur 404"));
-						},
-					};
-				});
-				window.onNavigate(ROUTES_PATH.Bills);
-				await new Promise(process.nextTick);
-				const message = await screen.getByText(/Erreur 404/);
-				expect(message).toBeTruthy();
-			});
-
-			test("fetches messages from an API and fails with 500 message error", async () => {
-				mockStore.bills.mockImplementationOnce(() => {
-					return {
-						list: () => {
-							return Promise.reject(new Error("Erreur 500"));
-						},
-					};
-				});
-
-				window.onNavigate(ROUTES_PATH.Bills);
-				await new Promise(process.nextTick);
-				const message = await screen.getByText(/Erreur 500/);
-				expect(message).toBeTruthy();
-			});
+			jest.clearAllMocks();
 		});
 	});
 });

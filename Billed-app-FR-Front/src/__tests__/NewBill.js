@@ -202,15 +202,6 @@ describe("When I navigate to Dashboard employee", () => {
 				const errorSpy = jest
 					.spyOn(console, "error")
 					.mockImplementation(() => {});
-				document.body.innerHTML = NewBillUI();
-				const onNavigate = jest.fn();
-				const newBill = new NewBill({
-					document,
-					onNavigate,
-					store: mockStore,
-					localStorage: window.localStorage,
-				});
-
 				await expect(
 					mockStore.bills().create({ shouldFailWith404: true })
 				).rejects.toThrow("Erreur 404");
@@ -223,15 +214,6 @@ describe("When I navigate to Dashboard employee", () => {
 				const errorSpy = jest
 					.spyOn(console, "error")
 					.mockImplementation(() => {});
-				document.body.innerHTML = NewBillUI();
-				const onNavigate = jest.fn();
-				const newBill = new NewBill({
-					document,
-					onNavigate,
-					store: mockStore,
-					localStorage: window.localStorage,
-				});
-
 				await expect(
 					mockStore.bills().create({ shouldFailWith500: true })
 				).rejects.toThrow("Erreur 500");
@@ -239,6 +221,14 @@ describe("When I navigate to Dashboard employee", () => {
 				const error = errorSpy.mock.calls[0][0];
 				expect(error.message).toBe("Erreur 500");
 				errorSpy.mockRestore();
+			});
+			test("should succeed and return a bill", async () => {
+				const bill = {};
+				const result = await mockStore.bills().create(bill);
+				expect(result).toEqual({
+					fileUrl: "https://localhost:3456/images/test.jpg",
+					key: "1234",
+				});
 			});
 		});
 	});
